@@ -81,11 +81,11 @@ flowchart TB
     %% TEAMS URL FLOW (EP2)
     EP2 --> ValidateTeamsURL[Validate Teams URL<br/>CRITICAL: Teams Only!]
     ValidateTeamsURL -->|Invalid Format| Error400
-    ValidateTeamsURL -->|Zoom/Meet/Webex| Error400Rejected[400 Bad Request<br/>"Platform not supported"]
+    ValidateTeamsURL -->|Zoom/Meet/Webex| Error400Rejected[400 Bad Request<br/>Platform not supported]
     ValidateTeamsURL -->|Valid Teams URL| ExtractMeetingID[Extract Meeting ID<br/>from URL Pattern]
     
     ExtractMeetingID --> AuthGraph{Microsoft Graph<br/>Auth Available?}
-    AuthGraph -->|No| Error500[500 Internal Error<br/>"Graph API not configured"]
+    AuthGraph -->|No| Error500[500 Internal Error<br/>Graph API not configured]
     AuthGraph -->|Yes| GetAccessToken[Get Access Token<br/>via Client Credentials]
     
     GetAccessToken --> GetMeetingDetails[Graph API:<br/>GET /me/onlineMeetings/:id]
@@ -177,7 +177,7 @@ flowchart TB
     PostProcess --> ValidateActionItems[Validate Action Items<br/>For Each Item:]
     ValidateActionItems --> OwnerValidation{Owner<br/>Valid?}
     
-    OwnerValidation -->|Date Pattern| FixOwner[Set Owner: "Unassigned"]
+    OwnerValidation -->|Date Pattern| FixOwner[Set Owner: Unassigned]
     OwnerValidation -->|Placeholder| FixOwner
     OwnerValidation -->|Valid Name| StatusCheck{Status<br/>Valid?}
     FixOwner --> StatusCheck
@@ -186,7 +186,7 @@ flowchart TB
     StatusCheck -->|Valid| KeywordCheck{Completion<br/>Keywords?}
     MigrateStatus --> KeywordCheck
     
-    KeywordCheck -->|"completed", "done", etc.| ForceComplete[Force Status: DONE<br/>Clear Deadline]
+    KeywordCheck -->|completed, done, etc.| ForceComplete[Force Status: DONE<br/>Clear Deadline]
     KeywordCheck -->|No Keywords| KeepStatus[Keep Status]
     ForceComplete --> NextItem
     KeepStatus --> NextItem
@@ -196,7 +196,7 @@ flowchart TB
     MoreItems -->|No| FallbackExtraction
     
     FallbackExtraction[Fallback Extraction<br/>Regex Pattern Matching]
-    FallbackExtraction --> ScanTranscript[Scan Transcript for:<br/>- "completed: ..."<br/>- "done: ..."<br/>- Status indicators]
+    FallbackExtraction --> ScanTranscript[Scan Transcript for:<br/>- completed: ...<br/>- done: ...<br/>- Status indicators]
     
     ScanTranscript --> MatchItems[Match with Existing Items<br/>Fuzzy Matching]
     MatchItems --> AddMissed[Add Missed Completed Items]
@@ -219,7 +219,7 @@ flowchart TB
     CreateSummaryObj --> UpdateProgress80[Update Progress: 80%<br/>Saving Data]
     UpdateProgress80 --> SaveToDB[(Save to SQLite Database)]
     
-    SaveToDB --> InsertMeeting[INSERT INTO meetings<br/>- id (UUID)<br/>- project_name<br/>- meeting_title<br/>- meeting_date<br/>- overall_summary<br/>- participants<br/>- tags<br/>- created_at]
+    SaveToDB --> InsertMeeting[INSERT INTO meetings<br/>- id: UUID<br/>- project_name<br/>- meeting_title<br/>- meeting_date<br/>- overall_summary<br/>- participants<br/>- tags<br/>- created_at]
     
     InsertMeeting --> InsertActionItems[INSERT INTO action_items<br/>For Each Action Item:<br/>- meeting_id<br/>- description<br/>- owner<br/>- deadline<br/>- status<br/>- dependencies<br/>- tags]
     
@@ -416,7 +416,7 @@ flowchart TB
     SendGraphEmail -->|Success| LogReminderSent
     SendGraphEmail -->|Fail| TrelloComment{Trello Card<br/>Exists?}
     
-    TrelloComment -->|Yes| AddTrelloComment[Add Comment to Card<br/>"Reminder: Due in X hours"]
+    TrelloComment -->|Yes| AddTrelloComment[Add Comment to Card<br/>Reminder: Due in X hours]
     TrelloComment -->|No| LogReminderSkipped[Log: Reminder Skipped]
     
     AddTrelloComment --> LogReminderSent

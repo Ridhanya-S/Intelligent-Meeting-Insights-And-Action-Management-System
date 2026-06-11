@@ -2,7 +2,7 @@
 
 A FastAPI application that processes Teams meeting recordings and transcripts to generate structured summaries, extract action items, and sync them to Trello and Confluence.
 
-For full technical details see [TECH.md](TECH.md). For docs navigation see [docs/INDEX.md](docs/INDEX.md).
+For full technical details see [docs/TECH.md](docs/TECH.md). For docs navigation see [docs/INDEX.md](docs/INDEX.md).
 
 ---
 
