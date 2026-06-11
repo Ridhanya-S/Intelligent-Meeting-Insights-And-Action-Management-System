@@ -239,3 +239,251 @@ flowchart TB
 - Public endpoints: File upload, processing
 - Protected endpoints: Summaries, action items, projects
 
+## 📊 System Architecture Overview
+
+### Layer Breakdown
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    1. USER INTERACTION LAYER                 │
+│  - Web Frontend (HTML/CSS/JavaScript)                       │
+│  - API Clients (curl, Postman, Python requests)             │
+│  - CLI Scripts (command line interface)                     │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    2. API ROUTING LAYER                      │
+│  - FastAPI Application (backend/main.py)                    │
+│  - Authentication Middleware                                 │
+│  - CORS & Security Headers                                  │
+│  - API Endpoints (backend/api/)                             │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    3. VALIDATION LAYER                       │
+│  - Input Sanitization (security.py)                         │
+│  - File Validation                                          │
+│  - URL Validation (Teams Only!)                             │
+│  - Duplicate Detection                                      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    4. PROCESSING LAYER                       │
+│  - File Type Detection                                      │
+│  - Transcription (Whisper Model)                            │
+│  - Text Parsing                                             │
+│  - Metadata Extraction                                      │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    5. AI PROCESSING LAYER                    │
+│  - Prompt Engineering                                       │
+│  - OpenAI API Calls (GPT-3.5/GPT-4)                        │
+│  - Response Parsing                                         │
+│  - Entity Extraction (Action Items, Decisions, Risks)      │
+│  - Post-Processing & Validation                             │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    6. DATA STORAGE LAYER                     │
+│  - SQLite Database (meetings, action_items, projects)       │
+│  - File System (JSON files, original files)                 │
+│  - Hash Tracking (processed_files)                          │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    7. INTEGRATION LAYER                      │
+│  - Trello Sync (Board creation, Card management)            │
+│  - Confluence Sync (Page creation, HTML formatting)         │
+│  - SharePoint Access (File downloads)                       │
+│  - Microsoft Graph API (Meeting details, Email)             │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────────────┐
+│                    8. RESPONSE LAYER                         │
+│  - Format JSON Response                                     │
+│  - Include External URLs                                    │
+│  - Return to Client                                         │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                 9. BACKGROUND PROCESSES LAYER                │
+│  - Scheduler (APScheduler)                                  │
+│  - Reminder System (Hourly checks)                          │
+│  - Email Notifications (SMTP/Graph API)                     │
+│  - Overdue Task Detection                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 Data Flow Diagram
+
+```
+[USER] → [FRONTEND] → [API] → [VALIDATION]
+                                    ↓
+                              [PROCESSING]
+                                    ↓
+                            [AI PROCESSING]
+                                    ↓
+                         [DATA STORAGE] ←→ [DATABASE]
+                                    ↓
+                            [INTEGRATIONS]
+                              ↓         ↓
+                        [TRELLO]  [CONFLUENCE]
+                                    ↓
+                              [RESPONSE]
+                                    ↓
+                              [FRONTEND]
+                                    ↓
+                               [USER]
+
+[SCHEDULER] → [CHECK REMINDERS] → [SEND EMAILS] → [LOG RESULTS]
+```
+
+---
+
+## 🎯 Critical Workflows
+
+### 1. File Upload → Summary Generation
+
+```
+Upload File
+  → Validate (security, format, size)
+  → Check Duplicate (SHA-256 hash)
+  → Process File (transcribe if audio/video)
+  → Call AI (GPT for summarization)
+  → Extract Entities (action items, decisions, risks)
+  → Post-Process (validate owners, statuses)
+  → Save Database (meetings, action_items)
+  → Save Files (summary.json, transcript.json)
+  → Sync Trello (create cards)
+  → Sync Confluence (create page)
+  → Return Response (with URLs)
+```
+
+### 2. Teams URL → Recording Download → Processing
+
+```
+Teams URL
+  → Validate (Teams only - reject Zoom/Meet/etc.)
+  → Extract Meeting ID
+  → Graph API (get meeting details)
+  → Search SharePoint (find recordings)
+  → Download Files
+  → Process (same as file upload flow)
+```
+
+### 3. Reminder System (Background)
+
+```
+Every Hour:
+  → Query action_items (due within 24h)
+  → For each item:
+      → Get owner email
+      → Try SMTP email
+      → If fail → Try Graph API email
+      → If fail → Add Trello comment
+      → If fail → Skip
+  → Log results (sent/failed counts)
+```
+
+### 4. Project Deletion
+
+```
+Delete Project
+  → Get all meeting IDs
+  → For each meeting:
+      → Delete from database
+      → Delete files
+  → Archive Trello board
+  → Delete Confluence pages
+  → Delete project directory
+  → Return success
+```
+
+---
+
+## 🔒 Security Checkpoints
+
+1. **Authentication**: Bearer token validation
+2. **Input Sanitization**: Clean all user inputs
+3. **File Validation**: Extension, MIME type, size
+4. **URL Validation**: Only Microsoft Teams URLs
+5. **SQL Injection Prevention**: Parameterized queries
+6. **XSS Prevention**: Escaped output
+7. **Path Traversal Prevention**: Validated paths
+
+---
+
+## 📁 File Locations
+
+| Component | File Path |
+|-----------|-----------|
+| **Main App** | `backend/main.py` |
+| **API Endpoints** | `backend/api/*.py` |
+| **Transcription** | `backend/meeting_summarizer/core/transcript_processor.py` |
+| **Summarization** | `backend/meeting_summarizer/core/summarizer.py` |
+| **Storage** | `backend/meeting_summarizer/core/storage.py` |
+| **Trello** | `backend/meeting_summarizer/integrations/action_item_manager.py` |
+| **Confluence** | `backend/meeting_summarizer/integrations/knowledge_base.py` |
+| **Security** | `backend/security.py` |
+| **Frontend** | `frontend/templates/index.html`, `frontend/static/app.js` |
+
+---
+
+## 📊 Database Schema
+
+```sql
+meetings
+  - id (UUID)
+  - project_name
+  - meeting_title
+  - meeting_date
+  - overall_summary
+  - participants (JSON)
+  - tags (JSON)
+  - created_at
+  - updated_at
+
+action_items
+  - id (UUID)
+  - meeting_id (FK)
+  - description
+  - owner
+  - deadline
+  - status (ENUM)
+  - dependencies (JSON)
+  - tags (JSON)
+  - external_id (Trello card ID)
+
+processed_files
+  - file_hash (SHA-256)
+  - project_name
+  - meeting_id (FK)
+  - trello_synced (BOOLEAN)
+  - confluence_stored (BOOLEAN)
+  - processed_at
+
+email_mappings
+  - owner_name
+  - email_address
+```
+
+---
+
+## 🚀 Performance Optimizations
+
+1. **Async Processing**: Long operations run asynchronously
+2. **Progress Tracking**: Real-time updates via polling
+3. **Caching**: Trello board IDs cached in memory
+4. **Batch Operations**: Multiple cards created together
+5. **Connection Pooling**: Database connections reused
+6. **Lazy Loading**: Whisper model loaded on demand
+
+---
+
+Last Updated: December 8, 2025
+Project: Meeting Summarizer POC
+Total Flows: 9 major workflows
+
