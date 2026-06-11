@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamsAutoSummary Planner - Meeting Summarizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <span class="logo-icon">📝</span>
+                    <span class="logo-text">MeetingAI</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="upload">
+                    <span class="nav-icon">📤</span>
+                    <span class="nav-text">Upload</span>
+                </button>
+                <button class="nav-item" data-section="projects">
+                    <span class="nav-icon">📁</span>
+                    <span class="nav-text">Projects</span>
+                </button>
+                <button class="nav-item" data-section="action-items">
+                    <span class="nav-icon">✅</span>
+                    <span class="nav-text">Action Items</span>
+                </button>
+                <button class="nav-item" data-section="results">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Results</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Meeting Transcript Summarizer</h1>
+                <p class="header-subtitle">AI-powered meeting analysis and action item tracking</p>
+            </header>
+
+            <!-- Upload Section -->
+            <section class="content-section active" id="uploadSection">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h2>Upload Transcript</h2>
+                        <p class="card-description">Upload audio, video, or text files, or provide a Teams meeting URL</p>
+                    </div>
+                    
+                    <!-- Input Type Toggle -->
+                    <div class="input-type-toggle" style="display: flex; gap: 12px; margin-bottom: 24px; padding: 8px; background: var(--bg-secondary, #f5f5f5); border-radius: 8px;">
+                        <button type="button" class="toggle-btn active" id="toggleFileUpload" data-type="file" style="flex: 1; padding: 12px; border: 2px solid var(--primary, #007bff); border-radius: 6px; background: var(--primary, #007bff); color: white; cursor: pointer; font-weight: 500;">
+                            📎 Upload File
+                        </button>
+                        <button type="button" class="toggle-btn" id="toggleTeamsUrl" data-type="teams" style="flex: 1; padding: 12px; border: 2px solid var(--border, #ddd); border-radius: 6px; background: var(--bg-primary, white); color: var(--text-primary, #333); cursor: pointer; font-weight: 500;">
+                            🔗 Teams Meeting URL
+                        </button>
+                    </div>
+                    
+                    <!-- File Upload Form -->
+                    <form id="uploadForm" enctype="multipart/form-data" style="display: block;">
+                        <!-- Drag and Drop Zone -->
+                        <div class="file-drop-zone" id="fileDropZone">
+                            <input type="file" id="file" name="file" accept="audio/*,video/*,.txt,.md" required style="display: none;">
+                            <div class="drop-zone-content">
+                                <div class="drop-zone-icon">📎</div>
+                                <p class="drop-zone-text">Drag & drop your file here</p>
+                                <p class="drop-zone-subtext">or click to browse</p>
+                                <p class="drop-zone-formats">Supports: MP3, WAV, MP4, TXT, MD</p>
+                            </div>
+                            <div class="file-preview" id="filePreview" style="display: none;">
+                                <span class="file-name" id="fileName"></span>
+                                <button type="button" class="file-remove" id="fileRemove">×</button>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="projectName">
+                                    <span class="label-icon">📁</span>
+                                    Project Name <span class="required">*</span>
+                                </label>
+                                <div style="display: flex; gap: 8px;">
+                                    <select id="projectName" name="project_name" required 
+                                            style="flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-primary); color: var(--text-primary);">
+                                        <option value="">Select or add project...</option>
+                                    </select>
+                                    <input type="text" id="projectNameInput" name="project_name_input" 
+                                           placeholder="Or type new project name" 
+                                           style="flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-primary); color: var(--text-primary); display: none;">
+                                    <button type="button" id="addProjectBtn" class="btn btn-secondary" 
+                                            style="padding: 12px 20px; white-space: nowrap;">
+                                        + Add New
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="meetingTitle">
+                                    <span class="label-icon">📋</span>
+                                    Meeting Title
+                                </label>
+                                <input type="text" id="meetingTitle" name="meeting_title" 
+                                       placeholder="Optional - auto-detected from filename">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="meetingDate">
+                                    <span class="label-icon">📅</span>
+                                    Meeting Date
+                                </label>
+                                <input type="date" id="meetingDate" name="meeting_date">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="participants">
+                                    <span class="label-icon">👥</span>
+                                    Participants
+                                </label>
+                                <input type="text" id="participants" name="participants" 
+                                       placeholder="Comma-separated: John, Jane, Bob">
+                                <small>Leave empty to auto-detect</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="skipSync" name="skip_sync">
+                                <span class="checkbox-custom"></span>
+                                <span>Skip Trello Sync</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="analyzeProject" name="analyze_project" checked>
+                                <span class="checkbox-custom"></span>
+                                <span>Run Multi-Meeting Analysis</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-large" id="uploadBtn">
+                            <span class="btn-icon">🚀</span>
+                            <span class="btn-text">Process Transcript</span>
+                            <span class="btn-loader" style="display: none;">
+                                <span class="spinner"></span>
+                                Processing...
+                            </span>
+                        </button>
+                    </form>
+                    
+                    <!-- Teams URL Form -->
+                    <form id="teamsUrlForm" enctype="multipart/form-data" style="display: none;">
+                        <div class="form-group">
+                            <label for="teamsUrl">
+                                <span class="label-icon">🔗</span>
+                                Teams Meeting URL <span class="required">*</span>
+                            </label>
+                            <input type="url" id="teamsUrl" name="teams_url" 
+                                   placeholder="https://teams.microsoft.com/l/meetup-join/..." 
+                                   required style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-primary); color: var(--text-primary);">
+                            <small style="display: block; margin-top: 8px; color: var(--text-secondary);">
+                                Paste the Teams meeting URL. Meeting details will be fetched automatically.
+                            </small>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="teamsProjectName">
+                                    <span class="label-icon">📁</span>
+                                    Project Name <span class="required">*</span>
+                                </label>
+                                <div style="display: flex; gap: 8px;">
+                                    <select id="teamsProjectName" name="project_name" required 
+                                            style="flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-primary); color: var(--text-primary);">
+                                        <option value="">Select or add project...</option>
+                                    </select>
+                                    <input type="text" id="teamsProjectNameInput" name="project_name_input" 
+                                           placeholder="Or type new project name" 
+                                           style="flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; background: var(--bg-primary); color: var(--text-primary); display: none;">
+                                    <button type="button" id="teamsAddProjectBtn" class="btn btn-secondary" 
+                                            style="padding: 12px 20px; white-space: nowrap;">
+                                        + Add New
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="teamsMeetingTitle">
+                                    <span class="label-icon">📋</span>
+                                    Meeting Title
+                                </label>
+                                <input type="text" id="teamsMeetingTitle" name="meeting_title" 
+                                       placeholder="Optional - auto-detected from Teams">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="teamsMeetingDate">
+                                    <span class="label-icon">📅</span>
+                                    Meeting Date
+                                </label>
+                                <input type="date" id="teamsMeetingDate" name="meeting_date">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="teamsParticipants">
+                                    <span class="label-icon">👥</span>
+                                    Participants
+                                </label>
+                                <input type="text" id="teamsParticipants" name="participants" 
+                                       placeholder="Comma-separated: John, Jane, Bob">
+                                <small>Leave empty to auto-detect from Teams</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="teamsSkipSync" name="skip_sync">
+                                <span class="checkbox-custom"></span>
+                                <span>Skip Trello Sync</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="teamsAnalyzeProject" name="analyze_project" checked>
+                                <span class="checkbox-custom"></span>
+                                <span>Run Multi-Meeting Analysis</span>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-large" id="teamsUrlBtn">
+                            <span class="btn-icon">🚀</span>
+                            <span class="btn-text">Fetch & Process Teams Meeting</span>
+                            <span class="btn-loader" style="display: none;">
+                                <span class="spinner"></span>
+                                Processing...
+                            </span>
+                        </button>
+                    </form>
+
+                    <!-- Progress Bar -->
+                    <div id="progressBar" class="progress-bar" style="display: none;">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-percentage" id="progressPercentage">0%</div>
+                        <div class="progress-message" id="progressMessage" style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary); text-align: center;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Recording Selection Modal -->
+            <div id="recordingSelectionModal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2>Select Recordings to Process</h2>
+                        <button type="button" class="modal-close" id="closeRecordingModal">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="recordingSelectionMessage" style="margin-bottom: 20px;"></p>
+                        
+                        <!-- Filter Options -->
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <div style="font-weight: 600; margin-bottom: 8px; display: block;">Filter Options:</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary filter-btn active" data-filter="latest">Latest Only</button>
+                                <button type="button" class="btn btn-secondary filter-btn" data-filter="7days">Last 7 Days</button>
+                                <button type="button" class="btn btn-secondary filter-btn" data-filter="30days">Last 30 Days</button>
+                                <button type="button" class="btn btn-secondary filter-btn" data-filter="90days">Last 90 Days</button>
+                                <button type="button" class="btn btn-secondary filter-btn" data-filter="manual">Select Manually</button>
+                                <button type="button" class="btn btn-secondary filter-btn" data-filter="all">All</button>
+                            </div>
+                        </div>
+
+                        <!-- Recordings List -->
+                        <div id="recordingsList" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border, #ddd); border-radius: 8px; padding: 12px;">
+                            <!-- Recordings will be populated here -->
+                        </div>
+
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border, #ddd);">
+                            <p style="margin-bottom: 8px;"><strong>Selected: <span id="selectedCount">0</span> recording(s)</strong></p>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" id="cancelRecordingSelection">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmRecordingSelection" disabled>Process Selected</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <section class="content-section" id="resultsSection">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h2>Processing Results</h2>
+                        <button class="btn-icon-only" id="closeResults">×</button>
+                    </div>
+                    <div id="resultsContent"></div>
+                </div>
+            </section>
+
+            <!-- Projects Section -->
+            <section class="content-section" id="projectsSection">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h2>Projects</h2>
+                        <button class="btn btn-secondary btn-icon" id="refreshProjects">
+                            <span class="btn-icon">🔄</span>
+                            Refresh
+                        </button>
+                    </div>
+                    <div id="projectsList" class="projects-grid">
+                        <div class="loading-state">
+                            <div class="spinner-large"></div>
+                            <p>Loading projects...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Items Section -->
+            <section class="content-section" id="actionItemsSection">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h2>Action Items</h2>
+                        <div class="header-actions">
+                            <select id="projectFilter" class="filter-select">
+                                <option value="">All Projects</option>
+                            </select>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="new">New</option>
+                                <option value="pending">Pending</option>
+                                <option value="doing">Doing</option>
+                                <option value="done">Done</option>
+                                <option value="blocked">Blocked</option>
+                            </select>
+                            <button class="btn btn-secondary btn-icon" id="refreshActionItems">
+                                <span class="btn-icon">🔄</span>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div id="actionItemsList">
+                        <div class="loading-state">
+                            <div class="spinner-large"></div>
+                            <p>Loading action items...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+

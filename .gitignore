@@ -1,0 +1,49 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+myenv/
+
+# Environment variables (contains API keys)
+.env
+.env.local
+
+# Test coverage reports
+htmlcov/
+.coverage
+coverage.xml
+.pytest_cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.json
+
+# Data directory contents (processed files, transcripts, summaries)
+# Keep directory structure but ignore actual data
+data/**/*
+!data/.gitkeep
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Sample recordings (large binary files)
+samples/meeting_recordings/

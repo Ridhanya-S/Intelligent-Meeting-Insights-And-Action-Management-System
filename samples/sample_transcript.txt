@@ -1,0 +1,26 @@
+Meeting Transcript - Weekly Standup
+Date: 2025-11-25
+Participants: Alice, Bob, Charlie, David
+
+Alice: Good morning everyone. Let's start with our weekly standup. Bob, can you go first?
+
+Bob: Sure. Last week I completed the user authentication module. I'm currently working on the API integration. I should have it done by Wednesday. One blocker - I'm waiting for Charlie to finish the database schema changes.
+
+Charlie: Yeah, about that. I've been working on the schema changes but ran into some performance issues. I need to discuss this with David before proceeding. David, can we sync up after this meeting?
+
+David: Absolutely. I'm free at 2 PM today. On my side, I finished the frontend components for the dashboard. I'm starting on the reporting features next. No blockers.
+
+Alice: Great. So decisions we need to make today - should we push the release date back given the schema issues?
+
+Bob: I think we should. If we rush it, we might introduce bugs.
+
+Charlie: Agreed. Let's push it to next Friday.
+
+David: Sounds good to me.
+
+Alice: Okay, decision made - release pushed to next Friday. Action items: Charlie and David will sync at 2 PM today. Bob, continue with API integration. Charlie, resolve the schema performance issues by Thursday. David, continue with reporting features. Any risks or concerns?
+
+Bob: One risk - if the API integration takes longer than expected, we might need to adjust the timeline again.
+
+Alice: Good point. Let's monitor that. Anything else? No? Great, meeting adjourned.
+

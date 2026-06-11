@@ -1,0 +1,403 @@
+Below is the **updated, complete end-to-end workflow** that covers **all input types** — including **Teams API**, **uploaded files**, **video links**, **transcripts**, and **audio files** — and integrates **Planner + SharePoint**, with **project-wise storage**.
+
+## **0. User Input Stage**
+
+User provides:
+
+* **Project Name**
+* **Input Type** (auto-detected → optional)
+
+  * Video link
+  * Uploaded video file
+  * Uploaded audio file
+  * Transcription file 
+  * Teams Meeting ID / Join Link
+* (Optional) **Date / Meeting Title**
+
+---
+
+# **1. Input Classification Layer**
+
+Your backend automatically detects the input type.
+
+### 🔍 **Input Type Classification**
+
+| Input Pattern                           | Type                    |
+| --------------------------------------- | ----------------------- |
+| `teams.microsoft.com/l/meetup-join/...` | Teams meeting join link |
+| URL ending `.mp4` or SharePoint link    | Video link              |
+| OneDrive/SharePoint safe-link           | Video link (unwrapped)  |
+| Uploaded `.mp4`, `.mov`                 | Video file              |
+| Uploaded `.mp3`, `.wav`                 | Audio file              |
+| Uploaded `.vtt`, `.txt`, `.docx`        | Transcript file         |
+| Meeting ID numeric (468 385 751 296)    | Teams Meeting           |
+
+---
+
+# **2. Meeting Retrieval Logic**
+
+Based on detected input:
+
+---
+
+## **A. If user gives *Teams Meeting Join Link / Meeting ID***
+
+Use Graph API to fetch:
+
+1. **Call Record**
+   `/communications/callRecords?$filter=joinWebUrl eq '{joinUrl}'`
+
+2. Extract:
+
+   * Transcript (if available)
+   * Recording file link
+   * Participant metadata
+   * Duration
+
+3. If transcript exists → skip transcription
+   If only audio/video exists → transcribe it
+
+---
+
+## **B. If user gives a *Video Link*** (Any type)
+
+### **Case 1 — OneDrive/SharePoint (Microsoft 365 Recording)**
+
+* Unwrap SafeLink to get real URL
+* Identify file using Graph:
+  `/drive/items/{id}`
+* Download using:
+  `/drive/items/{id}/content`
+
+### **Case 2 — Public Video URL**
+
+* Download via HTTP request
+
+### **Continue → transcription pipeline**
+
+---
+
+## **C. If user uploads *Video or Audio File***
+
+* Accept file directly
+* Move to transcription
+
+---
+
+## **D. If user uploads *Transcript File***
+
+* Bypass transcription
+* Directly process text into summary + action items
+
+---
+
+# **3. Transcription Pipeline**
+
+For audio/video:
+
+1. **Chunking**
+
+   * Split long files (>5 min) into smaller 1–5 min segments
+
+2. **Azure Speech-to-Text**
+
+   * Language auto-detection
+   * Speaker diarization (speaker separation)
+
+3. **Transcript Normalization**
+
+   * Merge chunks
+   * Remove filler words
+   * Attach speaker labels
+
+4. Output:
+
+   * Clean transcript
+   * Timestamps
+   * Speaker mappings
+
+---
+
+# **4. Structured Summarization Engine (GenAI)**
+
+Feed normalized transcript into LLM → produce:
+
+### ✔ **Agenda-wise summary**
+
+### ✔ **Decisions made**
+
+### ✔ **Risks / Blockers**
+
+### ✔ **Follow-ups**
+
+### ✔ **Action items (owner + deadline)**
+
+### ✔ **Meeting metadata** (participants, duration, project)
+
+---
+
+# **5. Action Item Management**
+
+### **If using Planner**
+
+For each action item:
+
+```
+POST /planner/tasks
+- Title
+- Description
+- Due Date
+- Assignments
+- Status (default-new, active, resolved, backlog)
+```
+
+Optional:
+
+* Add labels (priority, category)
+* Add checklist items within the task
+
+---
+STEP: 6. Reminder Scheduler (24 Hours Before Due Date)
+
+🚀 Reminder Workflow
+
+When a task is created:
+
+Step 1: Extract the Due Date
+
+Example:
+
+2025-03-01T15:00:00Z
+
+Step 2: Calculate Reminder Time
+dueDateTime - 24 hours
+
+
+e.g.
+
+2025-02-28T15:00:00Z
+
+Step 3: Register a Reminder Event
+
+You store the reminder job in one of the following:
+
+Azure Logic App
+
+Trigger: scheduled run every hour
+
+Check all Planner tasks due in <= 24 hours
+
+Send message to owner (Teams chat or email)
+
+Step 4: Send Reminder to Task Owner
+
+Use Graph API:
+
+Send Teams Chat Message
+POST /chats/{chat-id}/messages
+
+
+Message:
+
+⚠ Reminder: Your task “Finalize API integration” is due in 24 hours.
+Project: AI Meeting Summaries
+Due: 2025-03-01 3:00 PM
+
+Or Send Outlook Email
+POST /users/{ownerId}/sendMail
+
+---
+# **7. Knowledge Base Storage (SharePoint)**
+
+You suggested:
+
+> store everything under the project name with call datewise
+
+### **Folder Structure**
+
+```
+/SharePoint-Site/Meetings/
+    /<Project Name>/
+         /2025-02-28 (AI Standup Call)/
+               transcript.txt
+               summary.md
+               actions.json
+               recording.mp4 (optional)
+```
+
+### **Storage Steps**
+
+1. Create project folder if it doesn't exist
+2. Create date-based folder
+3. Upload:
+
+   * Transcript
+   * Summary
+   * Action items
+   * Recording (optional)
+
+### **Add Metadata Tags**
+
+* Project
+* Meeting title
+* Date
+* Participants
+* Tags based on agenda/topics
+* Action-item count
+
+---
+
+# **8. Multi-Meeting Intelligence (Advanced Layer)**
+
+Pull past meetings from SharePoint (same project folder):
+
+### Runs weekly/nightly:
+
+1. Analyze all past summaries
+2. Detect patterns:
+
+   * Repeated blockers
+   * Unresolved action items
+   * Delayed tasks
+3. Produce:
+
+   * Project Health Summary
+   * Recurring Themes
+   * Suggested agenda for next sprint meeting
+
+Example:
+
+> “The topic ‘API Integration Failures’ appeared in 4 consecutive meetings. Suggest allocating a dedicated technical deep dive.”
+
+---
+
+# **9. Final Output to User**
+
+After processing, user sees:
+
+* Clean transcript
+* Structured summary
+* Action items + Planner links
+* Storage location in SharePoint
+* Project analytics (optional)
+
+---
+
+1. ER Diagram (High-Level)
+Projects ───< Meetings ───< ActionItems ───< Reminders
+           │             │                  │
+           │             └──────> PlannerTasks (1-1)
+           │
+           └──────< MeetingFiles
+
+✅ 2. Database Schema (SQL)
+TABLE 1 — projects
+
+Holds all project-level metadata.
+
+CREATE TABLE projects (
+    project_id        SERIAL PRIMARY KEY,
+    name              VARCHAR(255) NOT NULL UNIQUE,
+    description       TEXT,
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 2 — meetings
+
+Stores metadata for each meeting (regardless of input type).
+
+CREATE TABLE meetings (
+    meeting_id        SERIAL PRIMARY KEY,
+    project_id        INT REFERENCES projects(project_id),
+    meeting_title     VARCHAR(255),
+    meeting_date      TIMESTAMP,
+    meeting_type      VARCHAR(50),     -- video link, file upload, teams join link etc.
+    teams_meeting_id  VARCHAR(255),    -- optional
+    join_url          TEXT,            -- optional Teams link
+    transcript_text   TEXT,            -- processed transcript
+    summary_text      TEXT,            -- LLM summary
+    sharepoint_path   TEXT,            -- location of stored files
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 3 — meeting_files
+
+All files (recording, transcript file, summary file, etc.) related to a meeting.
+
+CREATE TABLE meeting_files (
+    file_id           SERIAL PRIMARY KEY,
+    meeting_id        INT REFERENCES meetings(meeting_id),
+    file_type         VARCHAR(50),    -- video, audio, transcript, summary, json, raw_text
+    file_name         VARCHAR(255),
+    file_path         TEXT,           -- local or SharePoint
+    uploaded_at       TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 4 — users (optional, if storing internal users)
+
+Used for planner syncing + assignment.
+
+CREATE TABLE users (
+    user_id           SERIAL PRIMARY KEY,
+    display_name      VARCHAR(255),
+    email             VARCHAR(255) UNIQUE,
+    teams_user_id     VARCHAR(255),   -- Microsoft Graph user ID
+    created_at        TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 5 — action_items
+
+Main table generated from LLM summarization.
+
+CREATE TABLE action_items (
+    action_id         SERIAL PRIMARY KEY,
+    meeting_id        INT REFERENCES meetings(meeting_id),
+    project_id        INT REFERENCES projects(project_id),
+    
+    title             VARCHAR(500) NOT NULL,
+    description       TEXT,
+    owner_user_id     INT REFERENCES users(user_id),
+    
+    priority          VARCHAR(20),        -- High, Medium, Low
+    status            VARCHAR(20) DEFAULT 'Not Started',
+    
+    due_date          TIMESTAMP,
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 6 — planner_tasks (1-to-1 with action items)
+
+Stores mapping to Microsoft Planner tasks created for each action item.
+
+CREATE TABLE planner_tasks (
+    planner_task_id       SERIAL PRIMARY KEY,
+    action_id             INT UNIQUE REFERENCES action_items(action_id),
+
+    planner_task_graph_id VARCHAR(255),    -- Graph API ID
+    bucket_id             VARCHAR(255),    -- Planner bucket
+    plan_id               VARCHAR(255),    -- Planner plan
+    created_at            TIMESTAMP DEFAULT NOW(),
+    updated_at            TIMESTAMP DEFAULT NOW()
+);
+
+TABLE 7 — reminders
+
+Used for sending reminders 24 hours before due date.
+
+CREATE TABLE reminders (
+    reminder_id       SERIAL PRIMARY KEY,
+    action_id         INT REFERENCES action_items(action_id),
+    
+    reminder_time     TIMESTAMP,           -- due_date - interval '24 hours'
+    sent              BOOLEAN DEFAULT FALSE,
+    sent_at           TIMESTAMP,
+    
+    created_at        TIMESTAMP DEFAULT NOW()
+);
+
+
+
+
